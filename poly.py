@@ -19,8 +19,6 @@ encoding_type = args.e.lower()
 shell_path = args.p 
 junk = args.j 
 
-asp_test = 'C:\\users\\i\\documents\\scripts\\poly\\test\\shell.asp'
-
 if shell_type not in [ 'php', 'asp', 'aspx' ] : exit("'" + shell_type + "' not supported.") 
 if encoding_type not in [ 'b64', 'ord', 'rnd', 'rot' ] : exit("Encoding not supported.") 
 if shell_type == 'php' : poly = Php(shell_path) 
@@ -31,5 +29,6 @@ if encoding_type == 'b64' : encoded_shell = poly.Base64(junk)
 if encoding_type == 'ord' : encoded_shell = poly.OrdPlus(junk) 
 if encoding_type == 'rnd' : encoded_shell = poly.Random(junk) 
 if encoding_type == 'rot' : encoded_shell = poly.RotPlus(junk) 
+
 poly.Write(encoded_shell)
 
