@@ -145,9 +145,9 @@ class PhpParser :
 			"php":"<\?.*?[\n}{;]\s*\?>", "js":"<script.+?</script>", "html":"<html.+?</html>", 
 			"php_vars":"(\$[\w]*)\s*=", "js_vars":"var\s*([\w]*)\s*[=;,]", 
 			"functions":"function\s+([\w]*)\s*\(", "classes":"class\s+([\w]*)\s*{", 
-			"strings":r"(\".*?(?<!\\(?<!\\\\(?<!\\\\\\)))\")|('.*?(?<!\\(?<!\\\\(?<!\\\\\\)))')", # r"(\".*?(?<!\\)\")|('.*?(?<!\\)')"
+			"strings":r"(\".*?(?<!\\(?<!\\\\(?<!\\\\\\)))\")|('.*?(?<!\\(?<!\\\\(?<!\\\\\\)))')", 
 			"comments":"[\n\t\)}{;]\s*(//.*?\n)|[\n\t;]\s*(#.*?\n)|(/\*.*?\*/)" 
-			} 
+		} 
 		rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) if get in ['php', 'js', 'html', 'strings', 'comments'] else re.compile(code_rexp[get], re.IGNORECASE)
 		if get == 'php_vars' : parts = [ clean_var(r) for r in re.findall(rexp, part) if clean_var(r) != '' and clean_var(r).split('[')[0] not in self.php_reserved ] 
 		elif get in ['strings', 'comments'] : parts = [ ''.join(r) for r in re.findall(rexp, part) if len(r) > 0 ]
@@ -197,14 +197,14 @@ class AspParser :
 		comments = self.Parts(code, 'comments') 
 		for comment in comments : code = code.replace(comment, '')
 		return code
-		
+	
 	def Parts(self, part, get='asp'): 
 		code_rexp = { 
 			'asp':'(<%.*?%>)', 'js':'<script.+?</script>', 'html':'<html.+?</html>', 
 			'asp_vars':'dim\s*(.*?)[:\n]', 'js_vars':'var\s*([\w]*)\s*[=;,]', 
 			"functions":"function\s+([\w]*)\s*\(", "subs":"sub\s+([\w]*)\s*\(", 
 			'strings':'(".*?")', 'comments':'(\'.*?)\n' 
-			}
+		}
 		rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) if get in ['asp', 'js', 'html', 'strings'] else re.compile(code_rexp[get], re.IGNORECASE)
 		if get == 'asp_vars' : parts = [ p for part in re.findall(rexp, part) for p in part.split(',') ] 
 		else : parts = [ part for part in re.findall(rexp, part) ]
