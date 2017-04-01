@@ -1,7 +1,7 @@
 # poly
 A python script that generates polymorphic webshells.  
 Use it to encode your favourite shell and make it practically undetectable.  
-If no shell is specified with the -p arguement,  the default shell in the /webshells directory is used.  
+If no shell is specified with the -p arguement,  the default shell in the /shells directory is used.  
   
 **Notice :**  
 With asp shells it is recommended to use the default shell. ( /shells/shell.asp )  
