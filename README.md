@@ -18,11 +18,12 @@ Rnd and rot encodings are not binary safe. ( may produce unprintable characters 
   
 | Encodings |   |  
 | --------- | --------- |  
-| b64  |  base64 encoded text |  
+| b64  |  base64 encoded text with random strings in random intervals |  
 | ord  |  ord() each character plus a random number |  
 | rnd  |  each character is mapped to another random character |  
-| rot  |  text divided in random number of rows, then rotated by 90 degrees |  
+| rot  |  text is divided in a random number of rows, then rotated by 90 degrees |  
 
+>C99 shell uploaded on virustotal
 | Encoding | Detection rate |  
 | -------- | --------- |
 | none | 41 / 56 |  
