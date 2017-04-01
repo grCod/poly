@@ -19,8 +19,8 @@ Rnd and rot encodings are not binary safe. ( may produce unprintable characters 
 | Encodings |   |  
 | --------- | --------- |  
 | b64  |  base64 encoded text |  
-| ord  |  order of each character plus a random number |  
-| rnd  |  each character mapped to another random character |  
+| ord  |  ord() each character plus a random number |  
+| rnd  |  each character is mapped to another random character |  
 | rot  |  text divided in random number of rows, then rotated by 90 degrees |  
 
 **Disclaimer :**  
