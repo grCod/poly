@@ -10,13 +10,17 @@ Aspx shells may not work on some servers.
 Php works pretty much with every shell, on every server.  
 Rnd and rot encodings are not binary safe. ( may produce unprintable characters )  
 
-| Webshells |   |  
+>Supported webshells  
+
+| Webshell |   |  
 | --------- | --------- |  
-| php |  |  
-| asp | ( vbs ) |  
-| aspx | ( c# ) |  
-  
-| Encodings |   |  
+| .php |  |  
+| .asp | ( vbs ) |  
+| .aspx | ( c# ) |  
+
+>Supported encoders  
+
+| Encoding |   |  
 | --------- | --------- |  
 | b64  |  base64 encoded text with random strings in random intervals |  
 | ord  |  ord() each character plus a random number |  
