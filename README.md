@@ -23,6 +23,14 @@ Rnd and rot encodings are not binary safe. ( may produce unprintable characters 
 | rnd  |  each character is mapped to another random character |  
 | rot  |  text divided in random number of rows, then rotated by 90 degrees |  
 
+| Encoding | Detection rate |  
+| -------- | --------- |
+| none | 41 / 56 |  
+| b64 | 0 / 52 |  
+| ord | 0 / 54 |  
+| rnd | 0 / 54 |  
+| rot | 0 / 54 |  
+
 **Disclaimer :**  
 This tool is made for educational and research purposes.  
 Don't be evil.. 
