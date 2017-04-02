@@ -24,7 +24,7 @@ Rnd and rot encodings are not binary safe. ( may produce unprintable characters 
 | b64  |  base64 encoded text with random strings in random intervals |  
 | ord  |  ord() each character plus a random number |  
 | rnd  |  each character is mapped to another random character |  
-| rot  |  text is divided in a random number of rows, then rotated 90 degrees clockwise |  
+| rot  |  text is divided by a random number of rows, then rotated 90 degrees clockwise |  
 
 >C99 shell uploaded on virustotal  
 
