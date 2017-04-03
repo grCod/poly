@@ -97,25 +97,25 @@ class Junk(Strings):
 	
 	def Aspx(self, vars): 
 		var_ini = 'string '
-		junk = ['/* ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(2, 6))) + ' */']
-		junk += [var_ini + vars[0] + ' = "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; ']
-		junk += [var_ini + vars[1] + ' = "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '" + "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '"; ']
-		junk += ['foreach( char ' + vars[2] + ' in "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '" ) { ' + vars[2] + '.ToString(); }']
-		junk += ['while(' + str(self.rndInt(1, 39)) + ' > ' + str(self.rndInt(40, 80)) + ') { Convert.ToInt32("' + self.rndStr(self.rndInt(40, 60), self.ints) + '"); }']
-		junk += ['public string ' + vars[3] + '( string ' + vars[0] + ' ) { return ' + vars[0] + ' + "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; } ' ]
+		junk = [ '/* ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(2, 6))) + ' */' ]
+		junk += [ var_ini + vars[0] + ' = "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; ' ]
+		junk += [ var_ini + vars[1] + ' = "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '" + "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '"; ' ]
+		junk += [ 'foreach( char ' + vars[2] + ' in "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '" ) { ' + vars[2] + '.ToString(); }' ]
+		junk += [ 'while(' + str(self.rndInt(1, 39)) + ' > ' + str(self.rndInt(40, 80)) + ') { Convert.ToInt32("' + self.rndStr(self.rndInt(40, 50), self.ints) + '"); }' ]
+		junk += [ 'public string ' + vars[3] + '( string ' + vars[0] + ' ) { return ' + vars[0] + ' + "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; } ' ]
 		return junk
 	
 	def Js(self, vars): 
 		junk = [ '/* ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(2, 6))) + ' */' ]
 		junk += [ 'var ' + vars[0] + ' = "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; ' ]
-		junk += [ 'var ' + vars[1] + ' = "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '" + "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '"; ']
+		junk += [ 'var ' + vars[1] + ' = "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '" + "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '"; ' ]
 		junk += [ 'if(' + str(self.rndInt(1, 19)) + ' > ' + str(self.rndInt(20, 80)) + ') { alert("' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"); } ' ]
 		junk += [ 'while(' + str(self.rndInt(1, 39)) + ' > ' + str(self.rndInt(40, 80)) + ') { var ' + vars[2] + ' = "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; } ' ]
 		return junk
 	
 	def Html(self): 
-		junk = ['<!-- ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(3, 6))) + ' -->']
-		junk += ['<input type=hidden value=' + self.rndStr(self.rndInt(18, 24), self.chars) + '>']
+		junk = [ '<!-- ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(3, 6))) + ' -->' ]
+		junk += [ '<input type=hidden value=' + self.rndStr(self.rndInt(18, 24), self.chars) + '>' ]
 		return junk
 	
 	def Add(self, code, vars): 
