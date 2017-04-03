@@ -3,12 +3,6 @@ A python script that generates polymorphic webshells.
 Use it to encode your favourite shell and make it practically undetectable.  
 If no shell is specified with the -p arguement,  the default shell in the /shells directory is used.  
   
-**Notice :**  
-With asp shells it is recommended to use the default shell. ( /shells/shell.asp )  
-Aspx shells may not work on some servers.  
-Php works pretty much with every shell, on every server.  
-Rnd and rot encodings are not binary safe. ( may produce unprintable characters )  
-
 >Supported webshells  
 
 | Webshell |   |  
@@ -35,7 +29,13 @@ Rnd and rot encodings are not binary safe. ( may produce unprintable characters 
 | ord | 0 / 54 |  
 | rnd | 0 / 56 |  
 | rot | 0 / 56 |  
-
+  
+**Notice :**  
+With asp shells it is recommended to use the default shell. ( /shells/shell.asp )  
+Aspx shells may not work on some servers.  
+Php works pretty much with every shell, on every server.  
+Rnd and rot encodings are not binary safe. ( may produce unprintable characters )  
+  
 **Disclaimer :**  
 This tool is made for educational and research purposes.  
 Don't be evil.. 
