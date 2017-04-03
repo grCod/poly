@@ -37,7 +37,7 @@ class Encoders(Strings):
 		return self.shell_encoded
 	
 	def OrdPlus(self): 
-		ord_plus = self.rndInt(2, 200)
+		ord_plus = self.rndInt(1, 1000)
 		chr_join = self.rndStr(1, self.chars)
 		self.shell_encoded = chr_join.join([ str(ord(s) + ord_plus) for s in self.shell_data ])
 		return (self.shell_encoded, ord_plus, chr_join)
@@ -45,14 +45,16 @@ class Encoders(Strings):
 	def Random(self): 
 		cs1 = self.Str2Rnd(self.all_chars) 
 		cs2 = self.Str2Rnd(cs1) 
-		self.shell_encoded = ''.join([ cs2[cs1.index(c)] if c in cs1 else c for c in self.shell_data ]) 
+		shell_data = self.UTF8Encode(self.shell_data)
+		self.shell_encoded = ''.join([ cs2[cs1.index(c)] if c in cs1 else c for c in shell_data ]) 
 		return (self.shell_encoded, cs1, cs2)
 	
 	def Rot90(self): 
-		rows = self.rndInt(2, (400 if len(self.shell_data) > 400 else len(self.shell_data) - 2))
-		while len(self.shell_data) % rows != 0 : self.shell_data += ' '
-		block_size = len(self.shell_data) / rows
-		table = [ self.shell_data[ block_size * i : block_size * (i + 1) ] for i in range(rows) ] 
+		shell_data = self.UTF8Encode(self.shell_data)
+		rows = self.rndInt(2, (400 if len(shell_data) > 400 else len(shell_data) - 2))
+		while len(shell_data) % rows != 0 : shell_data += ' '
+		block_size = len(shell_data) / rows
+		table = [ shell_data[ block_size * i : block_size * (i + 1) ] for i in range(rows) ] 
 		self.shell_encoded = ''.join([ ''.join([ r[i] for r in table ]) for i in range(block_size) ])
 		return (self.shell_encoded, rows) 
 	
@@ -65,12 +67,19 @@ class Encoders(Strings):
 			str2 += c
 			str1_copy = str1_copy.replace(c, '')
 		return str2
+	
+	def UTF8Encode(self, string): 
+		text = '' 
+		for c in string : 
+			try : text += c.encode('utf-8')
+			except : text += ' '
+		return text
 
 
 class Junk(Strings): 
 	
 	def Php(self, vars): 
-		junk = [ '/* ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(2, 6))) + ' */' ]
+		junk  = [ '/* ' + ' '.join(self.rndStr(self.rndInt(8, 16), self.an_chars) for _ in range(self.rndInt(2, 6))) + ' */' ]
 		junk += [ vars[0] + ' = "' + self.rndStr(self.rndInt(60, 120), self.an_chars) + '"; ' ]
 		junk += [ vars[1] + ' = "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '" . "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '"; ' ]
 		junk += [ 'if(@' + vars[2] + ' == "' + self.rndStr(self.rndInt(40, 60), self.an_chars) + '") { echo "' + self.rndStr(self.rndInt(40, 80), self.an_chars) + '"; } ' ]
@@ -117,7 +126,11 @@ class PhpParser :
 	
 	def __init__(self, shell): 
 		self.code = shell
-		self.php_reserved = [ '$GLOBALS', '$_SERVER', '$_REQUEST', '$_POST', '$_GET', '$_FILES', '$_ENV', '$_COOKIE', '$_SESSION', '$argc', '$argv', '$this->' ] 
+		self.php_reserved = [ 
+			'$GLOBALS', '$_SERVER', '$_REQUEST', '$_POST', '$_GET', 
+			'$_FILES', '$_ENV', '$_COOKIE', '$_SESSION', 
+			'$argc', '$argv', '$this->' 
+		] 
 	
 	def arraySort(self, array): 
 		tmp = []
@@ -147,11 +160,21 @@ class PhpParser :
 			"functions":"function\s+([\w]*)\s*\(", "classes":"class\s+([\w]*)\s*{", 
 			"strings":r"(\".*?(?<!\\(?<!\\\\(?<!\\\\\\)))\")|('.*?(?<!\\(?<!\\\\(?<!\\\\\\)))')", 
 			"comments":"[\n\t\)}{;]\s*(//.*?\n)|[\n\t;]\s*(#.*?\n)|(/\*.*?\*/)" 
-		} 
-		rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) if get in ['php', 'js', 'html', 'strings', 'comments'] else re.compile(code_rexp[get], re.IGNORECASE)
-		if get == 'php_vars' : parts = [ clean_var(r) for r in re.findall(rexp, part) if clean_var(r) != '' and clean_var(r).split('[')[0] not in self.php_reserved ] 
-		elif get in ['strings', 'comments'] : parts = [ ''.join(r) for r in re.findall(rexp, part) if len(r) > 0 ]
-		else : parts = [ r.strip() for r in re.findall(rexp, part) if r.strip() != '' ]
+			} 
+		if get in [ 'php', 'js', 'html', 'strings', 'comments' ] : 
+			rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) 
+		else : 
+			rexp = re.compile(code_rexp[get], re.IGNORECASE)
+		if get == 'php_vars' : 
+			parts = [ 
+				clean_var(r) 
+				for r in re.findall(rexp, part) 
+				if clean_var(r) != '' and clean_var(r).split('[')[0] not in self.php_reserved 
+			] 
+		elif get in ['strings', 'comments'] : 
+			parts = [ ''.join(r) for r in re.findall(rexp, part) if len(r) > 0 ]
+		else : 
+			parts = [ r.strip() for r in re.findall(rexp, part) if r.strip() != '' ]
 		return self.arraySort([ part.strip() for part in parts if part.strip() != '' ])
 	
 	def getParts(self, code = None): 
@@ -189,7 +212,8 @@ class AspParser :
 	def stripHead(self, code = None): 
 		if code == None : code = self.code
 		for asp in self.getParts()['asp'] : 
-			if re.match('<%\s*@\s*language\s*=\s*[\s\'"]vbscript', asp, re.IGNORECASE) : code = code.replace(asp, '')
+			if re.match('<%\s*@\s*language\s*=\s*[\s\'"]vbscript', asp, re.IGNORECASE) : 
+				code = code.replace(asp, '')
 		return code
 
 	def stripComments(self, code = None): 
@@ -197,15 +221,16 @@ class AspParser :
 		comments = self.Parts(code, 'comments') 
 		for comment in comments : code = code.replace(comment, '')
 		return code
-	
+		
 	def Parts(self, part, get='asp'): 
 		code_rexp = { 
 			'asp':'(<%.*?%>)', 'js':'<script.+?</script>', 'html':'<html.+?</html>', 
 			'asp_vars':'dim\s*(.*?)[:\n]', 'js_vars':'var\s*([\w]*)\s*[=;,]', 
 			"functions":"function\s+([\w]*)\s*\(", "subs":"sub\s+([\w]*)\s*\(", 
 			'strings':'(".*?")', 'comments':'(\'.*?)\n' 
-		}
-		rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) if get in ['asp', 'js', 'html', 'strings'] else re.compile(code_rexp[get], re.IGNORECASE)
+			}
+		if get in [ 'asp', 'js', 'html', 'strings' ] : rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) 
+		else : rexp = re.compile(code_rexp[get], re.IGNORECASE)
 		if get == 'asp_vars' : parts = [ p for part in re.findall(rexp, part) for p in part.split(',') ] 
 		else : parts = [ part for part in re.findall(rexp, part) ]
 		return list(set([ part.strip() for part in parts if part.strip() != '' ]))
