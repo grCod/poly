@@ -32,7 +32,7 @@ If no shell is specified with the -p arguement,  the default shell in the /shell
   
 **Notice :**  
 With asp shells it is recommended to use the default shell. ( /shells/shell.asp )  
-Aspx shells may not work on some servers.  
+Encoded aspx shells may not work on some servers.  
 Php works pretty much with every shell, on every server.  
 Rnd and rot encodings are not binary safe. ( may produce unprintable characters )  
   
