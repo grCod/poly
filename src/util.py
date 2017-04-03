@@ -160,7 +160,7 @@ class PhpParser :
 			"functions":"function\s+([\w]*)\s*\(", "classes":"class\s+([\w]*)\s*{", 
 			"strings":r"(\".*?(?<!\\(?<!\\\\(?<!\\\\\\)))\")|('.*?(?<!\\(?<!\\\\(?<!\\\\\\)))')", 
 			"comments":"[\n\t\)}{;]\s*(//.*?\n)|[\n\t;]\s*(#.*?\n)|(/\*.*?\*/)" 
-			} 
+		} 
 		if get in [ 'php', 'js', 'html', 'strings', 'comments' ] : 
 			rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) 
 		else : 
@@ -228,7 +228,7 @@ class AspParser :
 			'asp_vars':'dim\s*(.*?)[:\n]', 'js_vars':'var\s*([\w]*)\s*[=;,]', 
 			"functions":"function\s+([\w]*)\s*\(", "subs":"sub\s+([\w]*)\s*\(", 
 			'strings':'(".*?")', 'comments':'(\'.*?)\n' 
-			}
+		}
 		if get in [ 'asp', 'js', 'html', 'strings' ] : rexp = re.compile(code_rexp[get], re.DOTALL|re.IGNORECASE) 
 		else : rexp = re.compile(code_rexp[get], re.IGNORECASE)
 		if get == 'asp_vars' : parts = [ p for part in re.findall(rexp, part) for p in part.split(',') ] 
