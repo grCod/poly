@@ -19,12 +19,18 @@ shell_encoding = args.e.lower()
 shell_path = args.p 
 junk = args.j 
 
-if shell_type not in [ 'php', 'asp', 'aspx' ] : exit(shell_type + " shells are not supported.") 
-if shell_encoding not in [ 'b64', 'ord', 'rnd', 'rot' ] : exit("'" + shell_encoding + "' encoding is not supported.") 
-if shell_type == 'php' : poly = Php(shell_path) 
-if shell_type == 'asp' : poly = Asp(shell_path) 
-if shell_type == 'aspx' : poly = Aspx(shell_path) 
-if poly.shell_text == None : exit("Can't access file: " + poly.shell_path)
+if shell_type not in [ 'php', 'asp', 'aspx' ] : 
+	exit("{} shells are not supported.".format(shell_type)) 
+if shell_encoding not in [ 'b64', 'ord', 'rnd', 'rot' ] : 
+	exit("'{}' encoding is not supported.".format(shell_encoding)) 
+if shell_type == 'php' : 
+	poly = Php(shell_path) 
+if shell_type == 'asp' : 
+	poly = Asp(shell_path) 
+if shell_type == 'aspx' : 
+	poly = Aspx(shell_path) 
+if poly.shell_text == None : 
+	exit("Can't access file: {}".format(poly.shell_path))
 encoded = poly.Encode(shell_encoding) 
 encoded_shell = poly.Create(encoded, junk) 
 poly.Write(encoded_shell)
