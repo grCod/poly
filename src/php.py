@@ -29,10 +29,8 @@ class Php(Shell):
 		if add_junk : 
 			shell = '\n'.join( 
 				'\n'.join( 
-					[ line ] + [ 
-						Junk().Php(['$'+self.makeVars() for _ in range(4)], 'str') 
-						for _ in range(self.rndInt(0,2)) 
-					]
+					[ line ] + [ Junk().Php(['$'+self.makeVars() for _ in range(4)], 'str') 
+						for _ in range(self.rndInt(0,2)) ]
 				) for line in shell.splitlines()
 			) + ' \n'
 		shell = '<?php \n' + shell +  '?>' 
