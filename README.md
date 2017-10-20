@@ -30,7 +30,7 @@ If no shell is specified with the -p arguement,  the default shell in the /shell
 | rnd | 0 / 56 |  
 | rot | 0 / 56 |  
   
-**Requirements :** 
+**Requirements :**  
 Python 2.7
 
 **Notice :**  
