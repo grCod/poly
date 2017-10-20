@@ -30,6 +30,9 @@ If no shell is specified with the -p arguement,  the default shell in the /shell
 | rnd | 0 / 56 |  
 | rot | 0 / 56 |  
   
+**Requirements :** 
+Python 2.7
+
 **Notice :**  
 With asp shells it is recommended to use the default shell. ( /shells/shell.asp )  
 Encoded aspx shells may not work on some servers.  
